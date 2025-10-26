@@ -64,3 +64,10 @@ cd streetwarp-docker
 # rsync over old streetwarp videos into ~/streetwarp/video
 docker compose up -d
 '''
+
+# beszel
+'''
+# hub
+curl -sL https://get.beszel.dev/hub -o /tmp/install-hub.sh && chmod +x /tmp/install-hub.sh && /tmp/install-hub.sh
+# agent install via hub, configure as host "localhost" and use the localhost url to connect
+'''
