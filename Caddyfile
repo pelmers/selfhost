@@ -9,7 +9,7 @@
 # domain name.
 
 file.pelmers.com {
-    root * /home/peter/www
+    root * /srv/www
     header Access-Control-Allow-Origin "*"
     file_server
 }
