@@ -33,10 +33,8 @@ import argparse
 import os
 import subprocess
 import sys
-import shutil
 from pathlib import Path
-from typing import List, Dict, Optional
-import json
+from typing import Dict
 
 
 class Colors:
