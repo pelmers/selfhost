@@ -87,8 +87,8 @@ class ServerSetup:
             }
         }
 
-    def log(self, message: str, level: str = 'info') -> None:
-        """Log a message with color coding"""
+    def _log(self, message: str, level: str = 'info') -> None:
+        """Internal log method with color coding"""
         colors = {
             'info': Colors.OKBLUE,
             'success': Colors.OKGREEN,
@@ -101,12 +101,32 @@ class ServerSetup:
         color = colors.get(level, Colors.OKBLUE)
         print(f"{color}{prefix}{message}{Colors.ENDC}")
 
+    def info(self, message: str) -> None:
+        """Log an info message"""
+        self._log(message, 'info')
+
+    def success(self, message: str) -> None:
+        """Log a success message"""
+        self._log(message, 'success')
+
+    def warn(self, message: str) -> None:
+        """Log a warning message"""
+        self._log(message, 'warning')
+
+    def error(self, message: str) -> None:
+        """Log an error message"""
+        self._log(message, 'error')
+
+    def header(self, message: str) -> None:
+        """Log a header message"""
+        self._log(message, 'header')
+
     def run_command(self, command: str, description: str = "", check: bool = True, shell: bool = True) -> subprocess.CompletedProcess:
         """Execute a shell command with logging"""
-        self.log(f"Running: {description or command}")
+        self.info(f"Running: {description or command}")
         
         if self.dry_run:
-            self.log(f"Would execute: {command}", 'warning')
+            self.warn(f"Would execute: {command}")
             # Return a mock successful result for dry run
             return subprocess.CompletedProcess(command, 0, stdout='', stderr='')
         
@@ -119,45 +139,45 @@ class ServerSetup:
                 text=True
             )
             if result.stdout.strip():
-                self.log(f"Output: {result.stdout.strip()}")
+                self.info(f"Output: {result.stdout.strip()}")
             return result
         except subprocess.CalledProcessError as e:
-            self.log(f"Command failed: {e}", 'error')
+            self.error(f"Command failed: {e}")
             if e.stderr:
-                self.log(f"Error: {e.stderr}", 'error')
+                self.error(f"Error: {e.stderr}")
             raise
 
     def check_prerequisites(self) -> bool:
         """Check if the system meets basic requirements"""
-        self.log("Checking prerequisites...", 'header')
+        self.header("Checking prerequisites...")
         
         # Check if running on Ubuntu/Debian
         try:
             result = self.run_command("lsb_release -si", check=False)
             if result.returncode != 0:
-                self.log("Could not determine Linux distribution", 'warning')
+                self.warn("Could not determine Linux distribution")
             else:
                 distro = result.stdout.strip()
-                self.log(f"Detected distribution: {distro}")
+                self.info(f"Detected distribution: {distro}")
         except FileNotFoundError:
-            self.log("lsb_release not found, assuming compatible distribution", 'warning')
+            self.warn("lsb_release not found, assuming compatible distribution")
 
         # Check if running as non-root
         if os.geteuid() == 0:
-            self.log("ERROR: Do not run this script as root!", 'error')
+            self.error("ERROR: Do not run this script as root!")
             return False
 
         # Check sudo access
         try:
             self.run_command("sudo -n true", "Checking sudo access", check=False)
         except subprocess.CalledProcessError:
-            self.log("This script requires sudo access. You may be prompted for your password.", 'warning')
+            self.warn("This script requires sudo access. You may be prompted for your password.")
 
         return True
 
     def install_docker(self) -> None:
         """Install Docker and Docker Compose"""
-        self.log("Installing Docker...", 'header')
+        self.header("Installing Docker...")
         
         # Add Docker's official GPG key
         commands = [
@@ -194,15 +214,15 @@ class ServerSetup:
                 self.run_command(cmd, desc)
             except subprocess.CalledProcessError as e:
                 if "already exists" in str(e.stderr) or "group 'docker' already exists" in str(e.stderr):
-                    self.log(f"Skipping: {desc} (already exists)")
+                    self.info(f"Skipping: {desc} (already exists)")
                 else:
                     raise
 
-        self.log("Docker installation complete. You may need to log out and back in for group changes to take effect.", 'success')
+        self.success("Docker installation complete. You may need to log out and back in for group changes to take effect.")
 
     def install_caddy(self) -> None:
         """Install Caddy web server"""
-        self.log("Installing Caddy...", 'header')
+        self.header("Installing Caddy...")
         
         commands = [
             ("sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl", "Installing prerequisites"),
@@ -226,26 +246,26 @@ class ServerSetup:
         # Copy Caddyfile
         caddyfile_src = self.script_dir / "Caddyfile"
         if caddyfile_src.exists():
-            self.log("Copying Caddyfile to /etc/caddy/", 'info')
+            self.info("Copying Caddyfile to /etc/caddy/")
             if not self.dry_run:
                 self.run_command(f"sudo cp {caddyfile_src} /etc/caddy/Caddyfile", "Copying Caddyfile")
         else:
-            self.log("Caddyfile not found in current directory", 'warning')
+            self.warn("Caddyfile not found in current directory")
 
-        self.log("Caddy installation complete.", 'success')
+        self.success("Caddy installation complete.")
 
     def restore_caddy_certificates(self) -> None:
         """Instructions for restoring Caddy certificates"""
-        self.log("Certificate restoration required:", 'warning')
-        self.log("To restore SSL certificates from your old server, run:", 'info')
-        self.log("ssh olduser@oldserver 'sudo tar -C /var/lib/caddy -czf - .' | sudo tar -C /var/lib/caddy -xzf -", 'info')
-        self.log("Then restart Caddy: sudo systemctl restart caddy", 'info')
+        self.warn("Certificate restoration required:")
+        self.info("To restore SSL certificates from your old server, run:")
+        self.info("ssh olduser@oldserver 'sudo tar -C /var/lib/caddy -czf - .' | sudo tar -C /var/lib/caddy -xzf -")
+        self.info("Then restart Caddy: sudo systemctl restart caddy")
 
     def check_env_files(self) -> Dict[str, bool]:
         """Check which services have .env files configured"""
         env_status = {}
         
-        self.log("Checking environment files...", 'header')
+        self.header("Checking environment files...")
         
         for service_name, config in self.services.items():
             if config['env_required']:
@@ -254,12 +274,12 @@ class ServerSetup:
                 
                 if env_file.exists():
                     env_status[service_name] = True
-                    self.log(f"✓ {service_name}: .env file found")
+                    self.info(f"✓ {service_name}: .env file found")
                 else:
                     env_status[service_name] = False
-                    self.log(f"✗ {service_name}: .env file missing", 'warning')
+                    self.warn(f"✗ {service_name}: .env file missing")
                     if env_example.exists():
-                        self.log(f"  Example file available at: {env_example}")
+                        self.info(f"  Example file available at: {env_example}")
             else:
                 env_status[service_name] = True  # No env file required
 
@@ -267,7 +287,7 @@ class ServerSetup:
 
     def create_required_directories(self) -> None:
         """Create required directories for services"""
-        self.log("Creating required directories...", 'header')
+        self.header("Creating required directories...")
         
         directories = [
             self.home / "blog" / "content",  # Ghost content
@@ -285,30 +305,30 @@ class ServerSetup:
                 else:
                     # User directory
                     directory.mkdir(parents=True, exist_ok=True)
-                    self.log(f"Created directory: {directory}")
+                    self.info(f"Created directory: {directory}")
             else:
-                self.log(f"Would create directory: {directory}")
+                self.info(f"Would create directory: {directory}")
 
     def deploy_service(self, service_name: str) -> bool:
         """Deploy a specific service using docker compose"""
         config = self.services.get(service_name)
         if not config:
-            self.log(f"Unknown service: {service_name}", 'error')
+            self.error(f"Unknown service: {service_name}")
             return False
 
-        self.log(f"Deploying {config['description']}...", 'header')
+        self.header(f"Deploying {config['description']}...")
         
         service_path = config['path']
         if not service_path.exists():
-            self.log(f"Service directory not found: {service_path}", 'error')
+            self.error(f"Service directory not found: {service_path}")
             return False
 
         # Check for .env file if required
         if config['env_required']:
             env_file = service_path / '.env'
             if not env_file.exists():
-                self.log(f"Required .env file missing for {service_name}", 'error')
-                self.log(f"Copy .env file from old server or create from {service_path}/.env.example")
+                self.error(f"Required .env file missing for {service_name}")
+                self.info(f"Copy .env file from old server or create from {service_path}/.env.example")
                 return False
 
         # Change to service directory and run docker compose
@@ -324,11 +344,11 @@ class ServerSetup:
                 f"Starting {service_name} services"
             )
             
-            self.log(f"✓ {config['description']} deployed successfully", 'success')
+            self.success(f"✓ {config['description']} deployed successfully")
             return True
             
         except Exception as e:
-            self.log(f"Failed to deploy {service_name}: {e}", 'error')
+            self.error(f"Failed to deploy {service_name}: {e}")
             return False
         finally:
             if not self.dry_run:
@@ -336,7 +356,7 @@ class ServerSetup:
 
     def deploy_all_services(self) -> None:
         """Deploy all configured services"""
-        self.log("Deploying all services...", 'header')
+        self.header("Deploying all services...")
         
         env_status = self.check_env_files()
         
@@ -344,13 +364,13 @@ class ServerSetup:
             if env_status.get(service_name, False):
                 success = self.deploy_service(service_name)
                 if not success:
-                    self.log(f"Service {service_name} deployment failed", 'warning')
+                    self.warn(f"Service {service_name} deployment failed")
             else:
-                self.log(f"Skipping {service_name} due to missing .env file", 'warning')
+                self.warn(f"Skipping {service_name} due to missing .env file")
 
     def setup_beszel_monitoring(self) -> None:
         """Install Beszel monitoring (hub and agent)"""
-        self.log("Setting up Beszel monitoring...", 'header')
+        self.header("Setting up Beszel monitoring...")
         
         # Install hub
         self.run_command(
@@ -358,35 +378,35 @@ class ServerSetup:
             "Installing Beszel hub"
         )
         
-        self.log("Beszel hub installed. Configure the agent through the web interface:", 'success')
-        self.log("1. Access the Beszel web interface", 'info')
-        self.log("2. Add agent with host 'localhost'", 'info')
-        self.log("3. Use localhost URL to connect the agent", 'info')
+        self.success("Beszel hub installed. Configure the agent through the web interface:")
+        self.info("1. Access the Beszel web interface")
+        self.info("2. Add agent with host 'localhost'")
+        self.info("3. Use localhost URL to connect the agent")
 
     def show_status(self) -> None:
         """Show the status of all services"""
-        self.log("Service Status:", 'header')
+        self.header("Service Status:")
         
         try:
             # Check Docker services
             result = self.run_command("docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'", check=False)
             if result.returncode == 0:
-                self.log("Docker containers:")
-                self.log(result.stdout)
+                self.info("Docker containers:")
+                self.info(result.stdout)
             
             # Check Caddy status
             result = self.run_command("sudo systemctl is-active caddy", check=False)
             caddy_status = result.stdout.strip() if result.returncode == 0 else "unknown"
-            self.log(f"Caddy status: {caddy_status}")
+            self.info(f"Caddy status: {caddy_status}")
             
         except Exception as e:
-            self.log(f"Error checking status: {e}", 'error')
+            self.error(f"Error checking status: {e}")
 
     def show_next_steps(self) -> None:
         """Show manual steps that need to be completed"""
-        self.log("\n" + "="*60, 'header')
-        self.log("MANUAL STEPS REQUIRED:", 'header')
-        self.log("="*60, 'header')
+        self.header("\n" + "="*60)
+        self.header("MANUAL STEPS REQUIRED:")
+        self.header("="*60)
         
         steps = [
             "1. Copy .env files from old server to each service directory:",
@@ -414,9 +434,9 @@ class ServerSetup:
         
         for step in steps:
             if step.startswith(("   ", "  ")):
-                self.log(step, 'info')
+                self.info(step)
             else:
-                self.log(step, 'warning')
+                self.warn(step)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -446,11 +466,11 @@ def main():
             if args.service in setup.services:
                 setup.deploy_service(args.service)
             else:
-                setup.log(f"Unknown service: {args.service}. Available: {', '.join(setup.services.keys())}", 'error')
+                setup.error(f"Unknown service: {args.service}. Available: {', '.join(setup.services.keys())}")
                 return
             return
         
-        setup.log("Starting server setup...", 'header')
+        setup.header("Starting server setup...")
         
         if not setup.check_prerequisites():
             return
@@ -471,13 +491,13 @@ def main():
             setup.setup_beszel_monitoring()
         
         setup.show_next_steps()
-        setup.log("Setup completed!", 'success')
+        setup.success("Setup completed!")
         
     except KeyboardInterrupt:
-        setup.log("\nSetup interrupted by user", 'warning')
+        setup.warn("\nSetup interrupted by user")
         sys.exit(1)
     except Exception as e:
-        setup.log(f"Setup failed: {e}", 'error')
+        setup.error(f"Setup failed: {e}")
         sys.exit(1)
 
 
