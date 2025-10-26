@@ -1,0 +1,13 @@
+services:
+  gpx-splice-redirect:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SCRIPT_REF: main
+    image: gpx-splice-redirect:local
+    env_file:
+      - .env
+    ports:
+      - "9090:9090"
+    restart: unless-stopped

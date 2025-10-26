@@ -1,0 +1,13 @@
+services:
+  streetwarp-web:
+    build:
+      context: ./streetwarp-web
+      dockerfile: Dockerfile
+    image: streetwarp-web:local
+    ports:
+      - "4041:4041"
+    volumes:
+      - ${HOME}/streetwarp/video:/app/video
+    env_file:
+      - .env
+    restart: unless-stopped

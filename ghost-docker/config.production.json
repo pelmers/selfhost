@@ -1,0 +1,23 @@
+{
+  "url": "https://pelmers.com",
+  "server": {
+    "host": "::",
+    "port": 2368
+  },
+  "database": {
+    "client": "sqlite3",
+    "connection": {
+      "filename": "/var/lib/ghost/content/data/ghost-dev.db"
+    }
+  },
+  "paths": {
+    "contentPath": "/var/lib/ghost/content"
+  },
+  "mail": {
+    "transport": "Direct"
+  },
+  "logging": {
+    "level": "info",
+    "transports": ["stdout"]
+  }
+}

@@ -1,0 +1,70 @@
+# The Caddyfile is an easy way to configure your Caddy web server.
+#
+# Unless the file starts with a global options block, the first
+# uncommented line is always the address of your site.
+#
+# To use your own domain name (with automatic HTTPS), first make
+# sure your domain's A/AAAA DNS records are properly pointed to
+# this machine's public IP, then replace the line below with your
+# domain name.
+
+file.pelmers.com {
+    root * /home/peter/www
+    header Access-Control-Allow-Origin "*"
+    file_server
+}
+
+www.pelmers.com {
+	redir https://pelmers.com permanent
+}
+
+pelmers.com {
+	log {
+		format console
+		output file /var/log/caddy/pelmers-access.log {
+			roll_size 1gb
+			roll_keep 2
+			roll_keep_for 7200h
+		}
+	}
+	reverse_proxy localhost:2368
+}
+
+gpxspliceredirect.pelmers.com {
+	reverse_proxy localhost:9090
+}
+
+www.streetwarp.com {
+	redir https://streetwarp.com permanent
+}
+
+streetwarp.com {
+	log {
+		format console
+		output file /var/log/caddy/streetwarp-access.log {
+			roll_size 1gb
+			roll_keep 2
+			roll_keep_for 7200h
+		}
+	}
+	reverse_proxy localhost:4041
+}
+
+rubber.pelmers.com {
+    @api path /api /api/*
+    handle @api {
+        reverse_proxy localhost:3001
+    }
+    handle {
+        reverse_proxy localhost:3002
+    }
+}
+
+# Another common task is to set up a reverse proxy:
+# reverse_proxy localhost:8080
+
+# Or serve a PHP site through php-fpm:
+# php_fastcgi localhost:9000
+
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile

@@ -1,0 +1,9 @@
+[submodule "streetwarp-docker/streetwarp-web"]
+	path = streetwarp-docker/streetwarp-web
+	url = https://github.com/pelmers/streetwarp-web
+[submodule "gpx-splice-redirect-docker/GPXSpliceApp"]
+	path = gpx-splice-redirect-docker/GPXSpliceApp
+	url = https://github.com/pelmers/GPXSpliceApp
+[submodule "rybbit"]
+	path = rybbit
+	url = https://github.com/rybbit-io/rybbit.git

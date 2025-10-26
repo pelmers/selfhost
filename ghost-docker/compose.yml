@@ -1,0 +1,13 @@
+services:
+  ghost:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghost-docker-5
+    ports:
+      - "2368:2368"
+    volumes:
+      - ${HOME}/blog/content:/var/lib/ghost/content
+    restart: unless-stopped
+    environment:
+      - security__staffDeviceVerification=false
