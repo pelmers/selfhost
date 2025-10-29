@@ -13,7 +13,8 @@ Usage:
 
 Options:
     --skip-docker       Skip Docker installation
-    --skip-caddy        Skip Caddy installation  
+    --skip-caddy        Skip Caddy installation
+    --skip-shell        Skip Starship and zsh installation
     --skip-services     Skip service deployment
     --skip-monitoring   Skip Beszel monitoring setup
     --dry-run          Show what would be done without executing
@@ -217,6 +218,35 @@ class ServerSetup:
                     raise
 
         self.success("Docker installation complete. You may need to log out and back in for group changes to take effect.")
+
+    def install_starship_and_zsh(self) -> None:
+        """Install Starship prompt and switch to zsh"""
+        self.header("Installing Starship prompt and zsh...")
+        
+        # Install zsh first
+        self.run_command("sudo apt install -y zsh", "Installing zsh")
+        
+        # Install Starship
+        self.run_command("curl -sS https://starship.rs/install.sh | sh", "Installing Starship prompt")
+        
+        # Copy starship config if it exists
+        starship_config_src = self.script_dir / "dotfiles" / "config" / "starship.toml"
+        config_dir = self.home / ".config"
+        if not self.dry_run:
+            config_dir.mkdir(exist_ok=True)
+            self.run_command(f"cp {starship_config_src} {config_dir}/starship.toml", "Copying Starship configuration")
+        
+        # Copy zshrc if it exists
+        zshrc_src = self.script_dir / "dotfiles" / ".zshrc"
+        zshrc_dst = self.home / ".zshrc"
+        if not self.dry_run:
+            self.run_command(f"cp {zshrc_src} {zshrc_dst}", "Copying .zshrc configuration")
+        
+        # Change shell to zsh
+        zsh_path = "/usr/bin/zsh"
+        self.run_command(f"chsh -s {zsh_path}", f"Changing shell to zsh for user {self.user}")
+        
+        self.success("Starship and zsh installation complete. You may need to log out and back in for shell changes to take effect.")
 
     def install_caddy(self) -> None:
         """Install Caddy web server"""
@@ -445,6 +475,7 @@ def main():
     
     parser.add_argument('--skip-docker', action='store_true', help='Skip Docker installation')
     parser.add_argument('--skip-caddy', action='store_true', help='Skip Caddy installation')
+    parser.add_argument('--skip-shell', action='store_true', help='Skip Starship and zsh installation')
     parser.add_argument('--skip-services', action='store_true', help='Skip service deployment')
     parser.add_argument('--skip-monitoring', action='store_true', help='Skip Beszel monitoring setup')
     parser.add_argument('--dry-run', action='store_true', help='Show what would be done without executing')
@@ -481,6 +512,9 @@ def main():
         if not args.skip_caddy:
             setup.install_caddy()
             setup.restore_caddy_certificates()
+        
+        if not args.skip_shell:
+            setup.install_starship_and_zsh()
         
         if not args.skip_services:
             setup.deploy_all_services()
