@@ -8,6 +8,10 @@ services:
     image: gpx-splice-redirect:local
     env_file:
       - .env
+    environment:
+      TOKEN_LEDGER_PATH: /app/data/strava_token_ledger.json
     ports:
       - "9090:9090"
+    volumes:
+      - ${HOME}/gpx-splice-redirect/data:/app/data
     restart: unless-stopped
