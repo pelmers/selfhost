@@ -6,8 +6,13 @@ services:
     image: streetwarp-web:local
     ports:
       - "4041:4041"
+    command:
+      - sh
+      - -c
+      - node dist/server.bundle.js 2>&1 | tee -a /app/logs/streetwarp-web.log
     volumes:
       - ${HOME}/streetwarp/video:/app/video
+      - ${HOME}/streetwarp/logs:/app/logs
     env_file:
       - .env
     restart: unless-stopped
